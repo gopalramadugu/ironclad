@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#121214">
+<title>IronLog</title>
+<style>
+:root{--bg:#f4f6fa;--bg2:#e9edf4;--card:#fff;--acc:#2563eb;--acc2:#1d4ed8;--tx:#0f172a;--mut:#64748b;--bd:#d9e0ea;--bad:#dc2626;--ok:#16a34a;--r:14px;color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#121214;--bg2:#1a1a1e;--card:#222228;--acc:#3b82f6;--acc2:#2563eb;--tx:#f3f4f6;--mut:#9ca3af;--bd:#2e2e38;--bad:#ef4444;--ok:#22c55e;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#121214;--bg2:#1a1a1e;--card:#222228;--acc:#3b82f6;--acc2:#2563eb;--tx:#f3f4f6;--mut:#9ca3af;--bd:#2e2e38;--bad:#ef4444;--ok:#22c55e;color-scheme:dark}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--tx);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.45}
+button{background:none;border:0;color:inherit;font:inherit;cursor:pointer}
+#app{height:100%;max-width:600px;margin:0 auto;display:flex;flex-direction:column;background:var(--bg)}
+header{flex:none;display:flex;justify-content:space-between;align-items:center;padding:calc(env(safe-area-inset-top,0px) + 12px) 18px 12px;background:var(--bg2);border-bottom:1px solid var(--bd)}
+h1{font-size:1.25rem;font-weight:750;letter-spacing:-.3px}
+main{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:16px 16px 28px}
+.view{display:none}.view.on{display:block}
+h2{font-size:1.1rem;font-weight:650;margin-bottom:10px}
+.mut{color:var(--mut);font-size:.85rem}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:var(--r);padding:14px;margin-bottom:12px}
+input,select{width:100%;padding:11px;background:var(--bg2);border:1px solid var(--bd);border-radius:10px;color:var(--tx);font:inherit;margin-bottom:10px}
+input:focus,select:focus{outline:2px solid var(--acc);outline-offset:-1px}
+.btn{width:100%;padding:12px;background:var(--acc);color:#fff;border-radius:10px;font-weight:650;text-align:center;display:block}
+.btn:active{background:var(--acc2)}
+.btn.sec{background:var(--bg2);color:var(--tx);border:1px solid var(--bd)}
+.btn.bad{background:transparent;color:var(--bad);border:1px solid var(--bad)}
+.btn.sm{width:auto;padding:8px 14px}
+.row{display:flex;gap:8px;align-items:center}.sb{justify-content:space-between}
+.routine{display:flex;justify-content:space-between;align-items:center;border-left:4px solid var(--acc);cursor:pointer}
+.routine h3{font-size:1rem}
+.ex{background:var(--card);border:1px solid var(--bd);border-radius:var(--r);padding:12px;margin-bottom:14px}
+.ex-name{font-weight:650}
+table{width:100%;border-collapse:collapse;font-size:.85rem;margin-top:8px}
+th{color:var(--mut);font-weight:500;text-align:center;padding-bottom:4px}
+td{padding:3px 2px;text-align:center}
+td input{margin:0;padding:9px 4px;text-align:center;font-weight:650}
+.chk{width:38px;height:38px;border-radius:8px;border:1px solid var(--bd);background:var(--bg2);color:var(--mut);font-size:1rem}
+.chk.done{background:var(--ok);border-color:var(--ok);color:#fff}
+.ib{width:34px;height:34px;border-radius:50%;border:1px solid var(--bd);background:var(--bg2);font-size:.95rem}
+#rest{flex:none;display:none;justify-content:space-between;align-items:center;padding:10px 18px;background:var(--card);border-top:2px solid var(--acc)}
+#rest.on{display:flex}
+#rest b{font-size:1.4rem;font-variant-numeric:tabular-nums}
+#rest .row button{padding:7px 12px;border-radius:8px;background:var(--bg2);border:1px solid var(--bd);font-weight:600;font-size:.85rem}
+nav{flex:none;display:flex;background:var(--bg2);border-top:1px solid var(--bd);padding:8px 0 calc(env(safe-area-inset-bottom,0px) + 8px)}
+nav button{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--mut);font-size:.7rem}
+nav button.on{color:var(--acc)}nav .i{font-size:1.2rem}
+#sheetbg{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:flex-end;justify-content:center;z-index:50}
+#sheetbg.on{display:flex}
+#sheet{width:100%;max-width:600px;max-height:85%;overflow-y:auto;background:var(--bg);border-radius:18px 18px 0 0;padding:18px 16px calc(env(safe-area-inset-bottom,0px) + 18px)}
+label.pick{display:flex;gap:10px;align-items:center;padding:9px 4px;border-bottom:1px solid var(--bd)}
+label.pick input{width:auto;margin:0}
+.bar{height:8px;background:var(--acc);border-radius:4px}.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}.cal i{aspect-ratio:1;border-radius:4px;background:var(--bg2)}.cal i.on{background:var(--acc)}
+.form{margin-top:6px;font-size:.85rem;color:var(--mut)}.form summary{cursor:pointer;color:var(--acc);padding:2px 0}.form ul{margin:6px 0 8px 18px}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1 id="title">IronLog</h1>
+    <button class="ib" id="themeBtn" onclick="cycleTheme()" aria-label="Change theme">🌓</button>
+  </header>
+  <main id="main">
+    <section id="v-workout" class="view on">
+      <div id="pick">
+        <div class="card"><div class="ex-name">Coach</div><p class="mut" style="margin:4px 0 10px">Get a fresh workout built from your library, or ask for feedback on your training.</p><div class="row"><button class="btn" onclick="coachSheet()">Build my workout</button><button class="btn sec" onclick="askCoach()">Ask coach</button></div></div>
+        <h2>Your routines</h2>
+        <p class="mut" style="margin-bottom:12px">Pick a routine. Your last weights and reps are filled in for you.</p>
+        <div id="routines"></div>
+        <button class="btn sec" style="margin-bottom:8px" onclick="addProgram()">Add 4-day Upper/Lower program</button>
+        <button class="btn sec" onclick="routineSheet()">New routine</button>
+      </div>
+      <div id="live" style="display:none">
+        <div class="row sb" style="margin-bottom:14px">
+          <div><h2 id="liveName" style="margin:0">Workout</h2><span class="mut" id="clock">00:00</span></div>
+          <div class="row"><button class="btn bad sm" onclick="cancelWorkout()">Discard</button><button class="btn sm" onclick="finishWorkout()">Finish</button></div>
+        </div>
+        <input id="wnote" placeholder="Workout notes" onchange="D.active.note=this.value;save()">
+        <div id="exlist"></div>
+        <button class="btn sec" onclick="addExSheet()">Add exercise</button>
+      </div>
+    </section>
+    <section id="v-history" class="view"><h2>History</h2><button class="btn sec" style="margin-bottom:12px" onclick="pastSheet()">Log a past workout</button><div id="hist"></div></section>
+    <section id="v-progress" class="view"><h2>Progress</h2><div id="prog"></div></section>
+    <section id="v-library" class="view">
+      <h2>Exercises</h2>
+      <input id="q" placeholder="Search exercises" oninput="renderLib()">
+      <div id="lib"></div>
+      <button class="btn" onclick="newExSheet()">New exercise</button>
+    </section>
+    <section id="v-settings" class="view">
+      <h2>Settings</h2>
+      <div class="card"><div class="ex-name" style="margin-bottom:8px">Rest timer</div>
+        <select id="restSel" onchange="D.rest=+this.value;save()">
+          <option value="45">45 seconds</option><option value="60">60 seconds</option><option value="90">90 seconds</option><option value="120">2 minutes</option><option value="180">3 minutes</option><option value="240">4 minutes</option>
+        </select>
+        <div class="ex-name" style="margin-bottom:8px">Units</div>
+        <select id="unitSel" onchange="D.unit=this.value;save();renderAll()"><option value="lb">Pounds (lb)</option><option value="kg">Kilograms (kg)</option></select>
+        <label class="pick" style="border:0;padding:4px 0 12px"><input type="checkbox" id="formChk" onchange="D.formOff=!this.checked;save();renderWorkout()"> Show form tips during workouts</label>
+        <label class="pick" style="border:0;padding:4px 0 12px"><input type="checkbox" id="restChk" onchange="D.restAuto=this.checked;save()"> Smart rest times (longer after heavy lifts)</label>
+        <button class="btn sec" onclick="askNotify()">Enable rest alerts</button>
+        <p class="mut" style="margin-top:8px">Alerts sound and vibrate when rest ends while IronLog is open. If your phone suspends the app, the timer catches up the moment you return.</p>
+      </div>
+      <div class="card"><div class="ex-name" style="margin-bottom:8px">Your data</div>
+        <p class="mut" id="cloudStat" style="margin-bottom:10px">Checking cloud backup…</p>
+        <button class="btn sec" style="margin-bottom:8px" onclick="manualBackup()">Back up now</button>
+        <button class="btn sec" style="margin-bottom:8px" onclick="restoreCloud()">Restore from cloud</button>
+        <button class="btn sec" style="margin-bottom:8px" onclick="exportData()">Save backup file</button>
+        <button class="btn sec" style="margin-bottom:8px" onclick="$('imp').click()">Import backup file</button>
+        <input type="file" id="imp" accept=".json,application/json" style="display:none" onchange="importData(this)">
+        <button class="btn bad" onclick="resetAll()">Erase all data</button></div>
+    </section>
+  </main>
+  <div id="rest"><div><div class="mut">Rest</div><b id="restT">00:00</b></div>
+    <div class="row"><button onclick="adjRest(-15)">−15s</button><button onclick="adjRest(15)">+15s</button><button onclick="stopRest()" aria-label="Skip rest">Skip</button></div></div>
+  <nav>
+    <button class="on" data-v="workout"><span class="i">⚡</span>Workout</button>
+    <button data-v="history"><span class="i">📋</span>History</button>
+    <button data-v="progress"><span class="i">📈</span>Progress</button>
+    <button data-v="library"><span class="i">🏋️</span>Library</button>
+    <button data-v="settings"><span class="i">⚙️</span>Settings</button>
+  </nav>
+</div>
+<div id="sheetbg" onclick="if(event.target===this)closeSheet()"><div id="sheet"></div></div>
+
+<script>
+const KEY='ironlog_v2';
+const DEF={theme:null,rest:90,unit:'lb',active:null,restEnd:null,history:[],
+ routines:[{id:'r1',name:'Upper body A',exercises:['Bench Press','Barbell Row','Overhead Press','Pull-ups']},{id:'r2',name:'Lower body A',exercises:['Squat','Romanian Deadlift','Leg Press','Calf Raises']}],
+ exercises:[['Bench Press','Chest',75,10],['Barbell Row','Back',65,10],['Overhead Press','Shoulders',45,10],['Pull-ups','Back',0,8],['Squat','Legs',95,8],['Romanian Deadlift','Legs',85,10],['Leg Press','Legs',140,12],['Calf Raises','Legs',50,15]].map(a=>({name:a[0],category:a[1],defaultWeight:a[2],defaultReps:a[3]}))};
+let D=JSON.parse(JSON.stringify(DEF));
+try{const s=localStorage.getItem(KEY)||localStorage.getItem('ironlog_data');if(s)D=Object.assign(D,JSON.parse(s))}catch(e){}
+let cloud=null,uid=null,pushT=null,remoteChunks=0,busy=false;const hs=[];
+function lite(){try{localStorage.setItem(KEY,JSON.stringify(D))}catch(e){}}
+function save(){D.updated=Date.now();lite();clearTimeout(pushT);pushT=setTimeout(push,4000)}
+function setStat(t){const e=$('cloudStat');if(e)e.textContent=t}
+const P=n=>cloud.doc('data/users/'+uid+'/'+n);
+const clone=x=>JSON.parse(JSON.stringify(x));
+async function initCloud(){
+ if(!D.updated&&(D.history.length||D.active))D.updated=Date.now();
+ try{if(!window.claude)return setStat('Cloud backup works when you open IronLog from Claude. Use backup files elsewhere.');
+  const [db,u]=await Promise.all([claude.use('db'),claude.use('user')]);
+  if(!db||!u)return setStat('Sign in to Claude to turn on cloud backup.');
+  uid=await u.id();if(!uid)return setStat('Sign in to Claude to turn on cloud backup.');
+  cloud=db;await cloudSync()}catch(e){setStat('Cloud backup is unavailable right now. Your data is safe on this device.')}}
+async function cloudSync(force){if(!cloud||busy)return;busy=true;
+ try{const m=await P('meta').get();
+  if(!m.exists){if(D.updated||D.history.length)await pushRaw();else setStat('Cloud backup is on. Nothing to save yet.')}
+  else{const r=clone(m.data());remoteChunks=r.chunks||0;
+   if(force||(r.updated||0)>(D.updated||0))await pullAll(r);
+   else if((D.updated||0)>(r.updated||0))await pushRaw();
+   else setStat('Cloud backup is up to date.')}
+ }catch(e){setStat('Cloud backup failed. Your data is still saved on this device.')}
+ busy=false}
+async function pullAll(r){let H=[];
+ for(let i=0;i<(r.chunks||0);i++){const c=await P('h'+i).get();if(c.exists)H=H.concat(clone(c.data().items||[]))}
+ D=Object.assign(D,{rest:r.rest||90,unit:r.unit||'lb',formOff:!!r.formOff,formHide:r.formHide||[],bw:r.bw||[],restAuto:r.restAuto!==false,routines:r.routines||[],exercises:r.exercises||[],history:H,active:r.active||null,updated:r.updated,synced:r.updated});
+ seedLib();$('restSel').value=D.rest;$('unitSel').value=D.unit;renderAll();wakeOn();setStat('Restored from your cloud backup.')}
+async function pushRaw(){const H=D.history,n=Math.ceil(H.length/50);
+ for(let i=0;i<Math.max(n,remoteChunks);i++){const s=JSON.stringify({items:H.slice(i*50,i*50+50)});if(hs[i]!==s){await P('h'+i).set(JSON.parse(s));hs[i]=s}}
+ const u=D.updated||Date.now();D.updated=u;
+ await P('meta').set({updated:u,chunks:n,rest:D.rest,unit:D.unit,formOff:!!D.formOff,formHide:D.formHide||[],bw:D.bw||[],restAuto:D.restAuto!==false,routines:clone(D.routines),exercises:clone(D.exercises),active:D.active?clone(D.active):null});
+ remoteChunks=n;D.synced=u;lite();setStat('Backed up at '+new Date().toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})+'.')}
+function push(){if(!cloud)return;if(busy){pushT=setTimeout(push,2000);return}busy=true;
+ pushRaw().catch(()=>setStat('Cloud backup failed. Your data is still saved on this device.')).finally(()=>{busy=false})}
+function manualBackup(){if(!cloud){alert('Cloud backup is not available here. Use Save backup file instead.');return}D.updated=Date.now();lite();push()}
+function restoreCloud(){if(!cloud){alert('Cloud backup is not available here.');return}if(confirm('Replace what is on this device with your cloud backup?'))cloudSync(true)}
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt=s=>{s=Math.max(0,s);const h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60,p=n=>String(n).padStart(2,'0');return (h?h+':':'')+p(m)+':'+p(x)};
+
+/* theme */
+function applyTheme(){if(D.theme)document.documentElement.setAttribute('data-theme',D.theme);else document.documentElement.removeAttribute('data-theme')}
+function cycleTheme(){D.theme=D.theme===null?'dark':D.theme==='dark'?'light':null;applyTheme();save()}
+
+/* navigation */
+const TITLES={workout:'IronLog',progress:'Progress',history:'History',library:'Library',settings:'Settings'};
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>show(b.dataset.v));
+function show(v){document.querySelectorAll('.view').forEach(e=>e.classList.toggle('on',e.id==='v-'+v));
+ document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
+ $('title').textContent=TITLES[v];$('main').scrollTop=0;renderAll()}
+
+/* sheet */
+function openSheet(h){$('sheet').innerHTML=h;$('sheetbg').classList.add('on')}
+function closeSheet(){$('sheetbg').classList.remove('on')}
+
+/* exercise library and coach */
+const SEED=`Bench Press|Chest|push|1|75|10
+Barbell Row|Back|pull|1|65|10
+Overhead Press|Shoulders|push|1|45|10
+Pull-ups|Back|pull|1|0|8
+Squat|Legs|legs|1|95|8
+Romanian Deadlift|Legs|legs|1|85|10
+Leg Press|Legs|legs|1|140|12
+Calf Raises|Legs|legs|0|50|15
+Incline Dumbbell Press|Chest|push|1|40|10
+Dumbbell Bench Press|Chest|push|1|50|10
+Push-ups|Chest|push|0|0|15
+Cable Fly|Chest|push|0|20|12
+Dips|Chest|push|1|0|8
+Seated Dumbbell Press|Shoulders|push|1|35|10
+Lateral Raise|Shoulders|push|0|15|12
+Triceps Pushdown|Triceps|push|0|40|12
+Skull Crushers|Triceps|push|0|40|10
+Overhead Triceps Extension|Triceps|push|0|30|12
+Lat Pulldown|Back|pull|1|100|10
+Seated Cable Row|Back|pull|1|90|10
+One-Arm Dumbbell Row|Back|pull|1|50|10
+Chin-ups|Back|pull|1|0|8
+Face Pull|Shoulders|pull|0|30|15
+Rear Delt Fly|Shoulders|pull|0|12|15
+Barbell Curl|Biceps|pull|0|45|10
+Dumbbell Curl|Biceps|pull|0|25|10
+Hammer Curl|Biceps|pull|0|25|10
+Deadlift|Legs|legs|1|135|5
+Front Squat|Legs|legs|1|65|8
+Goblet Squat|Legs|legs|1|45|12
+Bulgarian Split Squat|Legs|legs|1|30|10
+Walking Lunges|Legs|legs|1|30|12
+Hack Squat|Legs|legs|1|90|10
+Hip Thrust|Legs|legs|1|95|10
+Step-ups|Legs|legs|1|30|10
+Leg Extension|Legs|legs|0|70|12
+Leg Curl|Legs|legs|0|60|12
+Seated Calf Raise|Legs|legs|0|50|15
+Hanging Leg Raise|Core|core|0|0|12
+Cable Crunch|Core|core|0|60|15
+Ab Wheel|Core|core|0|0|10
+Dead Bug|Core|core|0|0|12`.split('\n').map(l=>{const a=l.split('|');return{name:a[0],category:a[1],grp:a[2],comp:a[3]==='1',defaultWeight:+a[4],defaultReps:+a[5]}});
+const inferGrp=c=>/chest|shoulder|tricep/i.test(c)?'push':/back|bicep/i.test(c)?'pull':/core|abs/i.test(c)?'core':'legs';
+function seedLib(){const skip=D.skip||[];
+ SEED.forEach(s=>{if(!D.exercises.some(e=>e.name===s.name)&&!skip.includes(s.name))D.exercises.push({...s})});
+ D.exercises.forEach(e=>{const s=SEED.find(x=>x.name===e.name);if(e.grp===undefined)e.grp=s?s.grp:inferGrp(e.category||'');if(e.comp===undefined)e.comp=s?s.comp:false});lite()}
+function tip(name,l){const t=sessionTops(name);if(t.length>=3&&t[0]>0&&t[0]<=t[2])return 'Coach: no progress in 3 sessions. Try a lighter deload week or a new rep range.';const d=D.exercises.find(e=>e.name===name)||{defaultReps:10},top=Math.max(0,...l.map(s=>s.weight)),inc=D.unit==='kg'?2.5:5;
+ return top>0&&l.every(s=>s.reps>=d.defaultReps)?`Coach: you hit ${d.defaultReps}+ reps on every set. Try ${top+inc} ${D.unit} today.`:`Coach: ${top>0?'keep '+top+' '+D.unit+' and':''} add a rep or two.`}
+const GRP={'Full body':['push','pull','legs','core'],Upper:['push','pull'],Lower:['legs','core'],Push:['push'],Pull:['pull'],Core:['core']};
+let G={focus:'Full body',mins:45,list:[]};
+const exOf=n=>D.exercises.find(e=>e.name===n)||{};
+function daysSince(n){const h=D.history.find(h=>h.exercises.some(e=>e.name===n));return h?(Date.now()-h.start)/864e5:30}
+function pickFrom(pool,used,wantComp){let c=pool.filter(e=>!used.includes(e.name));const k=c.filter(e=>!!e.comp===wantComp);if(k.length)c=k;if(!c.length)return null;
+ const cats=used.map(n=>exOf(n).category);
+ const w=c.map(e=>(Math.min(daysSince(e.name),14)+2)*(cats.includes(e.category)?.3:1));let r=Math.random()*w.reduce((a,b)=>a+b,0);
+ for(let i=0;i<c.length;i++){r-=w[i];if(r<=0)return c[i]}return c[c.length-1]}
+function build(){const gs=GRP[G.focus],n=G.mins<=30?4:G.mins<=45?5:6,lim=gs.length<=2?2:1,list=[];
+ for(let i=0;i<n;i++){const g=gs[i%gs.length],cc=list.filter(x=>exOf(x).grp===g&&exOf(x).comp).length;
+  const e=pickFrom(D.exercises.filter(e=>e.grp===g),list,g!=='core'&&cc<lim)||pickFrom(D.exercises.filter(e=>gs.includes(e.grp)),list,false);if(e)list.push(e.name)}
+ const rank=n=>exOf(n).grp==='core'?2:exOf(n).comp?0:1;G.list=list.sort((a,b)=>rank(a)-rank(b))}
+function coachSheet(){G.list=[];renderCoach()}
+function renderCoach(){const opt=(a,v)=>a.map(x=>`<option ${x===v?'selected':''}>${x}</option>`).join('');
+ openSheet(`<h2>Build my workout</h2><div class="row"><select onchange="G.focus=this.value;G.list=[];renderCoach()" aria-label="Focus">${opt(Object.keys(GRP),G.focus)}</select><select onchange="G.mins=+this.value;G.list=[];renderCoach()" aria-label="Time">${[30,45,60].map(m=>`<option value="${m}" ${m===G.mins?'selected':''}>${m} min</option>`).join('')}</select></div>
+ ${G.list.length?G.list.map((n,i)=>`<div class="card row sb" style="padding:10px"><div><strong>${esc(n)}</strong><div class="mut">${esc(exOf(n).category||'')}${exOf(n).comp?' · compound lift':''}</div></div><button class="ib" onclick="swapEx(${i})" aria-label="Swap exercise">↻</button></div>`).join('')+`<div class="row"><button class="btn sec" onclick="build();renderCoach()">Shuffle all</button><button class="btn" onclick="startGen()">Start workout</button></div>`:`<p class="mut" style="margin-bottom:12px">Pick a focus and how long you have. The coach favors lifts you have not done lately and keeps push and pull balanced.</p><button class="btn" onclick="build();renderCoach()">Generate workout</button>`}`)}
+function swapEx(i){const o=exOf(G.list[i]),rest=G.list.filter((_,k)=>k!==i),e=pickFrom(D.exercises.filter(x=>x.grp===o.grp),G.list,!!o.comp);if(e){G.list[i]=e.name;renderCoach()}}
+function startGen(){D.active={name:'Coach pick: '+G.focus,start:Date.now(),exercises:G.list.map(mkEx)};save();closeSheet();renderWorkout();wakeOn()}
+async function askCoach(){let s=null;try{s=window.claude&&await claude.use('sample')}catch(e){}
+ if(!s){alert('Coach feedback works when you open IronLog from Claude.');return}
+ openSheet('<h2>Coach</h2><p class="mut" id="coachTxt" style="white-space:pre-wrap">Looking over your training…</p>');
+ const recent=D.history.slice(0,12).map(h=>({date:new Date(h.start).toISOString().slice(0,10),workout:h.name,lifts:h.exercises.map(e=>e.name+': '+e.sets.map(x=>x.weight+'x'+x.reps).join(', '))}));
+ const q='You are a friendly, practical strength coach talking to a gym-goer. Units: '+D.unit+'. Their recent logged workouts (newest first): '+JSON.stringify(recent)+'. '+(recent.length?'In under 200 words of plain text with no markdown: say what is going well, name one or two lifts that are ready to go heavier with specific weights, point out any muscle groups or movement patterns they are neglecting, and suggest what to train next. ':'They have not logged a workout yet. In under 120 words of plain text, give a short encouraging plan for their first week and tell them what to log. ')+'Do not give medical advice.';
+ try{const r=await s(q,{onText:({text})=>{const e=$('coachTxt');if(e)e.textContent=text}});const e=$('coachTxt');if(e)e.textContent=r.text}
+ catch(e){const t=$('coachTxt');if(t)t.textContent='The coach could not respond right now. Try again in a moment.'}}
+
+const PROG4=[['p4_ua','Upper A',['Bench Press','Barbell Row','Overhead Press','Lat Pulldown','Lateral Raise','Triceps Pushdown','Dumbbell Curl']],
+ ['p4_la','Lower A',['Squat','Romanian Deadlift','Leg Press','Leg Curl','Calf Raises','Hanging Leg Raise']],
+ ['p4_ub','Upper B',['Incline Dumbbell Press','Chin-ups','Seated Dumbbell Press','Seated Cable Row','Face Pull','Skull Crushers','Hammer Curl']],
+ ['p4_lb','Lower B',['Front Squat','Hip Thrust','Bulgarian Split Squat','Leg Extension','Seated Calf Raise','Cable Crunch']]];
+function addProgram(){if(PROG4.every(p=>D.routines.some(r=>r.id===p[0]))){alert('The 4-day program is already in your routines.');return}
+ if(!confirm('Add Upper A, Lower A, Upper B and Lower B to your routines?'))return;
+ PROG4.forEach(p=>{if(!D.routines.some(r=>r.id===p[0]))D.routines.push({id:p[0],name:p[1],exercises:p[2]})});save();renderRoutines();
+ alert('Added. A good weekly schedule: Monday Upper A, Tuesday Lower A, Thursday Upper B, Friday Lower B. IronLog will show which one is next.')}
+function nextUp(){const ids=PROG4.map(p=>p[1]);if(!PROG4.every(p=>D.routines.some(r=>r.id===p[0])))return null;
+ const h=D.history.find(h=>ids.includes(h.name));return D.routines.find(r=>r.id===PROG4[h?(ids.indexOf(h.name)+1)%4:0][0])}
+
+const FORM=Object.fromEntries(`Bench Press|Pull shoulder blades back and down;Feet planted, lower the bar to mid-chest;Elbows about 45 degrees from your body, press up
+Barbell Row|Hinge at the hips with a flat back;Pull the bar to your lower ribs;Keep elbows close and lower with control
+Overhead Press|Squeeze glutes and brace your core;Press straight up, moving your head through at the top;Do not lean back
+Pull-ups|Start from a full hang;Pull your chest toward the bar with shoulders down;No swinging or kicking
+Squat|Feet shoulder-width, toes slightly out;Brace, knees track over toes;Go to at least parallel and drive through mid-foot
+Romanian Deadlift|Soft knees, push hips straight back;Keep the bar close to your legs;Stop when hamstrings stretch, back stays flat
+Leg Press|Feet shoulder-width on the platform;Lower until knees are near 90 degrees;Keep hips on the pad and never lock out hard
+Calf Raises|Lower to a full stretch;Pause at the top;Move slowly
+Incline Dumbbell Press|Bench at about 30 degrees;Elbows about 45 degrees from your body;Lower with control, press over upper chest
+Dumbbell Bench Press|Shoulder blades pinned back;Dumbbells over shoulders at the top;Get a deep but comfortable stretch
+Push-ups|Body in a straight line;Hands under shoulders, elbows about 45 degrees;Chest nearly touches the floor
+Cable Fly|Keep a slight, fixed bend in the elbows;Hug a barrel with your arms;Squeeze your chest, do not shrug
+Dips|Lean slightly forward for chest;Lower until upper arms are parallel to the floor;Stop if your shoulders hurt
+Seated Dumbbell Press|Back flat on the pad;Press overhead without flaring your ribs;Lower slowly
+Lateral Raise|Use a light weight;Lead with your elbows to shoulder height;No swinging
+Triceps Pushdown|Pin elbows to your sides;Extend fully;Return slowly
+Skull Crushers|Keep upper arms still;Lower toward your forehead;Extend without flaring elbows
+Overhead Triceps Extension|Elbows close to your ears;Lower behind your head with control;Brace your core
+Lat Pulldown|Chest up, slight lean back;Pull the bar to your upper chest;Drive elbows down, do not swing
+Seated Cable Row|Sit tall;Pull the handle to your belly;Squeeze shoulder blades, do not rock
+One-Arm Dumbbell Row|Hand on bench, back flat;Pull your elbow toward your hip;Do not twist your torso
+Chin-ups|Palms facing you;Start from a full hang;Chin over the bar, lower slowly
+Face Pull|Rope to face height;Elbows high and wide;Squeeze your rear delts
+Rear Delt Fly|Light weight, hinge forward;Lead with your elbows;Squeeze your upper back
+Barbell Curl|Elbows stay at your sides;No swinging;Full range, squeeze at the top
+Dumbbell Curl|Elbows at your sides;Turn your palms up as you curl;Lower slowly
+Hammer Curl|Neutral grip, thumbs up;Elbows still;Slow and controlled
+Deadlift|Bar over mid-foot, back flat;Push the floor away;Lock hips and knees together at the top, bar close to legs
+Front Squat|Elbows high;Stay upright;Knees track over toes
+Goblet Squat|Hold the weight at your chest;Chest up, elbows inside knees at the bottom;Drive through your heels
+Bulgarian Split Squat|Rear foot on a bench;Lower straight down;Drive through your front heel
+Walking Lunges|Take a long step;Torso upright, back knee near the floor;Front knee tracks over toes
+Hack Squat|Back flat on the pad;Feet shoulder-width;Lower to parallel, do not lock out hard
+Hip Thrust|Upper back on the bench, chin tucked;Drive through your heels;Squeeze glutes at the top, ribs down
+Step-ups|Whole foot on the box;Drive through the front heel;Lower with control
+Leg Extension|Pad just above your ankles;Pause at the top;Lower slowly
+Leg Curl|Hips stay down;Full range of motion;Return slowly
+Seated Calf Raise|Lower to a full stretch;Pause at the top;Move slowly
+Hanging Leg Raise|Avoid swinging;Tuck your pelvis as you raise;Lower with control
+Cable Crunch|Hips stay still;Curl your ribs toward your pelvis;Do not pull with your arms
+Ab Wheel|Brace and tuck your pelvis;Roll out only as far as your back stays flat;Stop if your lower back arches
+Dead Bug|Lower back pressed into the floor;Lower opposite arm and leg slowly;Breathe out as you extend`.split('\n').map(l=>{const a=l.split('|');return[a[0],a[1].split(';')]}));
+const FO=new Set();
+const showForm=n=>!D.formOff&&FORM[n]&&!(D.formHide||[]).includes(n);
+function fo(i,o){const n=D.active.exercises[i].name;o?FO.add(n):FO.delete(n)}
+function formHtml(n,i){return showForm(n)?`<details class="form" ${FO.has(n)?'open':''} ontoggle="fo(${i},this.open)"><summary>Form tips</summary><ul>${FORM[n].map(c=>`<li>${esc(c)}</li>`).join('')}</ul><button class="btn sec sm" onclick="hideFormAt(${i})">Hide for this exercise</button></details>`:''}
+function hideFormAt(i){const n=D.active.exercises[i].name;(D.formHide=D.formHide||[]).push(n);save();renderWorkout()}
+function formSheet(i){const e=D.exercises[i],hidden=(D.formHide||[]).includes(e.name);
+ openSheet(`<h2>${esc(e.name)}</h2><ul style="margin:0 0 12px 18px">${FORM[e.name].map(c=>`<li>${esc(c)}</li>`).join('')}</ul><label class="pick" style="border:0"><input type="checkbox" ${hidden?'':'checked'} onchange="toggleHide(${i},this.checked)"> Show these tips during workouts</label><p class="mut">General guidance, not medical advice. Start light and stop if something hurts.</p>`)}
+function toggleHide(i,on){const n=D.exercises[i].name;D.formHide=(D.formHide||[]).filter(x=>x!==n);if(!on)D.formHide.push(n);save();renderWorkout()}
+
+const wk=s=>s.t!=='w',TL={w:'W',d:'D',f:'F'};
+const restFor=n=>D.restAuto===false?D.rest:exOf(n).comp?150:exOf(n).grp==='core'?60:75;
+function sessionTops(n){return D.history.map(h=>{const e=h.exercises.find(x=>x.name===n);return e?Math.max(0,...e.sets.filter(wk).map(s=>s.weight)):null}).filter(x=>x!==null)}
+function cycleType(i,j){const s=D.active.exercises[i].sets[j],o=['','w','d','f'],k=(o.indexOf(s.t||'')+1)%4;if(o[k])s.t=o[k];else delete s.t;save();renderWorkout()}
+function delLastSet(i){const s=D.active.exercises[i].sets;if(s.length>1){s.pop();save();renderWorkout()}}
+function warmup(i){const e=D.active.exercises[i];if(e.sets.some(s=>s.t==='w'))return;const w=Math.max(0,...e.sets.map(s=>s.weight));if(!w){alert('Enter a working weight first.');return}
+ const st=D.unit==='kg'?2.5:5,r=x=>Math.max(st,Math.round(w*x/st)*st);
+ e.sets=[[.4,8],[.6,5],[.8,2]].map(([p,n])=>({weight:r(p),reps:n,done:false,t:'w'})).concat(e.sets);save();renderWorkout()}
+function plateSheet(i){const w=Math.max(0,...D.active.exercises[i].sets.filter(wk).map(s=>s.weight));openSheet(`<h2>Plate calculator</h2><input type='number' inputmode='decimal' value='${w}' oninput='plates(this.value)'><div id='pl'></div>`);plates(w)}
+function plates(w){const kg=D.unit==='kg',bar=kg?20:45,P=kg?[25,20,15,10,5,2.5,1.25]:[45,35,25,10,5,2.5];let r=(+w-bar)/2;const out=[];
+ if(!(r>=0)){$('pl').innerHTML=`<p class='mut'>That is lighter than the ${bar} ${D.unit} bar.</p>`;return}
+ P.forEach(p=>{const n=Math.floor(r/p+1e-9);if(n){out.push(n+' × '+p);r-=n*p}});
+ $('pl').innerHTML=`<p>Bar: ${bar} ${D.unit}. Load each side with:</p><p><strong>${out.join(', ')||'no plates'}</strong></p>`+(r>.01?`<p class='mut'>${(r*2).toFixed(2)} ${D.unit} cannot be made with standard plates.</p>`:'')}
+function pastSheet(){if(D.active){alert('Finish or discard your current workout first.');return}
+ openSheet(`<h2>Log a past workout</h2><input type='date' id='pd' value='${new Date().toISOString().slice(0,10)}'><select id='pr'>${D.routines.map(r=>`<option value='${r.id}'>${esc(r.name)}</option>`).join('')}</select><button class='btn' onclick='startPast()'>Continue</button>`)}
+function startPast(){const r=D.routines.find(x=>x.id===$('pr').value),d=$('pd').value;if(!r||!d)return;
+ D.active={name:r.name,start:new Date(d+'T12:00:00').getTime(),past:true,exercises:r.exercises.map(mkEx)};save();closeSheet();show('workout')}
+function editHist(i){if(D.active){alert('Finish or discard your current workout first.');return}
+ const h=D.history.splice(i,1)[0];h.past=true;D.active=h;save();show('workout')}
+const e1rm=s=>s.reps>1?s.weight*(1+s.reps/30):s.weight;
+function line(pts,u){if(pts.length<2)return "<p class='mut'>Add at least two entries to see a chart.</p>";
+ const W=300,H=120,v=pts.map(p=>p.v),lo=Math.min(...v),hi=Math.max(...v),sp=hi-lo||1,x=i=>10+i*(W-20)/(pts.length-1),y=n=>H-12-(n-lo)/sp*(H-30);
+ return `<svg viewBox='0 0 ${W} ${H}' style='width:100%'><polyline fill='none' stroke='var(--acc)' stroke-width='2' points='${pts.map((p,i)=>x(i)+','+y(p.v)).join(' ')}'/>${pts.map((p,i)=>`<circle cx='${x(i)}' cy='${y(p.v)}' r='3' fill='var(--acc)'/>`).join('')}<text x='10' y='11' font-size='10' fill='var(--mut)'>${Math.round(hi)} ${u}</text><text x='10' y='${H-1}' font-size='10' fill='var(--mut)'>${Math.round(lo)} ${u}</text></svg>`}
+let PX='';
+function renderProg(){const hs=D.history,names=[...new Set(hs.flatMap(h=>h.exercises.map(e=>e.name)))];if(!names.includes(PX))PX=names[0]||'';
+ const dn=t=>Math.floor((t-new Date(t).getTimezoneOffset()*6e4)/864e5),wn=t=>Math.floor((dn(t)+3)/7),now=Date.now(),td=dn(now),days=new Set(hs.map(h=>dn(h.start))),wks=new Set(hs.map(h=>wn(h.start)));
+ let w=wn(now),st=0;if(!wks.has(w))w--;while(wks.has(w)){st++;w--}
+ const s0=td-34,pad=((s0+3)%7+7)%7,cal="<i style='background:none'></i>".repeat(pad)+Array.from({length:35},(_,i)=>`<i class='${days.has(s0+i)?'on':''}'></i>`).join('');
+ const cnt={};hs.filter(h=>now-h.start<6048e5).forEach(h=>h.exercises.forEach(e=>{const c=exOf(e.name).category||'Other';cnt[c]=(cnt[c]||0)+e.sets.filter(wk).length}));
+ const cats=['Chest','Back','Shoulders','Biceps','Triceps','Legs','Core'],mx=Math.max(1,...Object.values(cnt)),miss=cats.filter(c=>!cnt[c]);
+ const ses=hs.filter(h=>h.exercises.some(e=>e.name===PX)).reverse().map(h=>{const ws=h.exercises.find(e=>e.name===PX).sets.filter(wk);return{v:Math.max(0,...ws.map(s=>s.weight)),est:Math.max(0,...ws.map(e1rm))}});
+ const best=n=>Math.max(0,...hs.flatMap(h=>h.exercises.filter(e=>e.name===n).flatMap(e=>e.sets.filter(wk).map(s=>s.weight)))),bw=D.bw||[];
+ $('prog').innerHTML=`<div class='card'><div class='ex-name'>${st} week streak</div><p class='mut' style='margin-bottom:8px'>${hs.filter(h=>wn(h.start)===wn(now)).length} workouts this week. Last 5 weeks:</p><div class='cal'>${cal}</div></div>
+ <div class='card'><div class='ex-name' style='margin-bottom:8px'>Sets in the last 7 days</div>${cats.map(c=>`<div class='row' style='margin-bottom:6px'><span class='mut' style='width:78px'>${c}</span><div style='flex:1'><div class='bar' style='width:${(cnt[c]||0)/mx*100}%;min-width:2px'></div></div><span class='mut' style='width:26px;text-align:right'>${cnt[c]||0}</span></div>`).join('')}${hs.length&&miss.length?`<p class='mut'>Nothing yet for: ${miss.join(', ')}.</p>`:''}</div>
+ <div class='card'><div class='ex-name' style='margin-bottom:8px'>Lift progress</div>${names.length?`<select onchange='PX=this.value;renderProg()'>${names.map(n=>`<option ${n===PX?'selected':''}>${esc(n)}</option>`).join('')}</select>${line(ses.map(s=>({v:s.v})),D.unit)}<p class='mut'>Estimated one-rep max: ${Math.round(ses.length?ses[ses.length-1].est:0)} ${D.unit}</p>`:"<p class='mut'>Finish a workout to see your lifts here.</p>"}</div>
+ <div class='card'><div class='ex-name' style='margin-bottom:8px'>Personal bests</div>${names.map(n=>`<div class='row sb' style='font-size:.9rem;margin-bottom:4px'><span>${esc(n)}</span><strong>${best(n)} ${D.unit}</strong></div>`).join('')||"<p class='mut'>None yet.</p>"}</div>
+ <div class='card'><div class='ex-name' style='margin-bottom:8px'>Bodyweight</div><div class='row'><input id='bwv' type='number' inputmode='decimal' placeholder='Today, ${D.unit}' style='margin:0'><button class='btn sm' onclick='addBw()'>Add</button></div>${line(bw.slice(-30).map(b=>({v:b.w})),D.unit)}${bw.length?`<p class='mut'>Latest: ${bw[bw.length-1].w} ${D.unit} <button class='mut' onclick='undoBw()' style='text-decoration:underline'>Remove last</button></p>`:''}</div>`}
+function addBw(){const v=+$('bwv').value;if(!(v>0))return;(D.bw=D.bw||[]).push({t:Date.now(),w:v});save();renderProg()}
+function undoBw(){(D.bw||[]).pop();save();renderProg()}
+
+/* routines */
+function renderRoutines(){const nx=nextUp();$('routines').innerHTML=(nx?`<button class="btn" style="margin-bottom:12px" onclick="startWorkout('${nx.id}')">Next up: ${esc(nx.name)}</button>`:'')+D.routines.map(r=>`<div class="card routine" onclick="startWorkout('${r.id}')"><div><h3>${esc(r.name)}</h3><span class="mut">${r.exercises.length} exercises</span></div><div class="row"><button class="ib" onclick="event.stopPropagation();delRoutine('${r.id}')" aria-label="Delete routine">🗑</button><span>▶</span></div></div>`).join('')}
+function routineSheet(){openSheet(`<h2>New routine</h2><input id="rn" placeholder="Routine name"><div>${D.exercises.map((e,i)=>`<label class="pick"><input type="checkbox" value="${i}"> ${esc(e.name)} <span class="mut">${esc(e.category)}</span></label>`).join('')}</div><button class="btn" style="margin-top:14px" onclick="saveRoutine()">Save routine</button>`)}
+function saveRoutine(){const n=$('rn').value.trim();const ex=[...document.querySelectorAll('#sheet input[type=checkbox]:checked')].map(c=>D.exercises[+c.value].name);
+ if(!n||!ex.length){alert('Add a name and pick at least one exercise.');return}
+ D.routines.push({id:'r_'+Date.now(),name:n,exercises:ex});save();closeSheet();renderRoutines()}
+function delRoutine(id){if(confirm('Delete this routine?')){D.routines=D.routines.filter(r=>r.id!==id);save();renderRoutines()}}
+
+/* workout */
+function lastSets(name){for(const h of D.history){const e=h.exercises.find(x=>x.name===name),w=e&&e.sets.filter(wk);if(w&&w.length)return w}return null}
+function mkEx(name){const def=D.exercises.find(e=>e.name===name)||{defaultWeight:50,defaultReps:10};const l=lastSets(name);
+ return {name,sets:l?l.map(s=>({weight:s.weight,reps:s.reps,done:false})):[0,1,2].map(()=>({weight:def.defaultWeight,reps:def.defaultReps,done:false}))}}
+function startWorkout(id){const r=D.routines.find(x=>x.id===id);if(!r)return;
+ D.active={name:r.name,start:Date.now(),exercises:r.exercises.map(mkEx)};save();renderWorkout();wakeOn()}
+function renderWorkout(){const a=D.active;$('pick').style.display=a?'none':'block';$('live').style.display=a?'block':'none';
+ if(!a){renderRoutines();return}
+ $('liveName').textContent=a.name;$('wnote').value=a.note||'';
+ $('exlist').innerHTML=a.exercises.map((ex,i)=>{const l=lastSets(ex.name);return `<div class="ex"><div class="row sb"><div><div class="ex-name">${esc(ex.name)}</div>${l?`<div class="mut">Last: ${l.map(s=>s.weight+'×'+s.reps).join(', ')}</div><div class="mut" style="color:var(--acc)">${esc(tip(ex.name,l))}</div>`:''}${formHtml(ex.name,i)}</div>
+ <div class="row">${exOf(ex.name).comp?`<button class="ib" onclick="warmup(${i})" aria-label="Add warm-up sets">W</button>`:''}<button class="ib" onclick="plateSheet(${i})" aria-label="Plate calculator">🧮</button><button class="ib" onclick="delLastSet(${i})" aria-label="Remove last set">−</button><button class="ib" onclick="addSet(${i})" aria-label="Add set">+</button><button class="ib" onclick="delEx(${i})" aria-label="Remove exercise">✕</button></div></div>
+ <table><thead><tr><th style="width:12%">Set</th><th style="width:34%">${D.unit}</th><th style="width:34%">Reps</th><th style="width:20%"></th></tr></thead><tbody>
+ ${ex.sets.map((s,j)=>`<tr><td class="mut" style="cursor:pointer" onclick="cycleType(${i},${j})">${s.t?TL[s.t]:j+1}</td><td><input type="number" inputmode="decimal" value="${s.weight}" onchange="upd(${i},${j},'weight',this.value)"></td><td><input type="number" inputmode="numeric" value="${s.reps}" onchange="upd(${i},${j},'reps',this.value)"></td><td><button class="chk ${s.done?'done':''}" onclick="toggle(${i},${j})" aria-label="Complete set">✓</button></td></tr>`).join('')}</tbody></table><input placeholder="Notes" value="${esc(ex.note||'')}" onchange="D.active.exercises[${i}].note=this.value;save()" style="margin:8px 0 0"></div>`}).join('')}
+function upd(i,j,f,v){D.active.exercises[i].sets[j][f]=Number(v)||0;save()}
+function addSet(i){const s=D.active.exercises[i].sets;const l=s[s.length-1]||{weight:50,reps:10};s.push({weight:l.weight,reps:l.reps,done:false});save();renderWorkout()}
+function delSet(i,j){const s=D.active.exercises[i].sets;if(s.length>1&&confirm('Remove set '+(j+1)+'?')){s.splice(j,1);save();renderWorkout()}}
+function delEx(i){if(confirm('Remove this exercise from the workout?')){D.active.exercises.splice(i,1);save();renderWorkout()}}
+function toggle(i,j){const s=D.active.exercises[i].sets[j];s.done=!s.done;save();renderWorkout();if(s.done)startRest(s.t==='w'?45:restFor(D.active.exercises[i].name))}
+function addExSheet(){openSheet(`<h2>Add exercise</h2>${D.exercises.map((e,i)=>`<label class="pick" onclick="pickEx(${i})">${esc(e.name)} <span class="mut">${esc(e.category)}</span></label>`).join('')}<button class="btn sec" style="margin-top:14px" onclick="newExSheet(true)">Create new exercise</button>`)}
+function pickEx(i){D.active.exercises.push(mkEx(D.exercises[i].name));save();closeSheet();renderWorkout()}
+function finishWorkout(){if(!confirm('Finish and save this workout?'))return;
+ const a=D.active;a.end=a.past?(a.end||a.start+2700000):Date.now();a.exercises.forEach(e=>e.sets=e.sets.filter(s=>s.done||false));a.exercises=a.exercises.filter(e=>e.sets.length);
+ const prs=a.exercises.filter(e=>{const seen=D.history.flatMap(h=>h.exercises.filter(x=>x.name===e.name).flatMap(x=>x.sets.filter(wk).map(s=>s.weight)));return seen.length&&Math.max(...e.sets.filter(wk).map(s=>s.weight))>Math.max(...seen)}).map(e=>e.name);
+ if(a.exercises.length){D.history.unshift(a);D.history.sort((x,y)=>y.start-x.start)}D.active=null;stopRest();save();wakeOff();renderWorkout();show('history');if(prs.length)setTimeout(()=>alert('New personal best: '+prs.join(', ')+'. Nice work!'),300)}
+function cancelWorkout(){if(confirm('Discard this workout without saving?')){D.active=null;stopRest();save();wakeOff();renderWorkout()}}
+
+/* timers: everything derives from saved timestamps, so nothing is lost when the app is backgrounded */
+function tick(){const a=D.active;if(a)$('clock').textContent=a.past?'Past workout':fmt(Math.floor((Date.now()-a.start)/1000));
+ if(D.restEnd){const left=Math.ceil((D.restEnd-Date.now())/1000);
+  if(left<=0){const wasLate=Date.now()-D.restEnd>3000;D.restEnd=null;lite();$('rest').classList.remove('on');if(!wasLate)alarm()}
+  else{$('rest').classList.add('on');$('restT').textContent=fmt(left)}}
+ else $('rest').classList.remove('on')}
+function startRest(sec){D.restEnd=Date.now()+(sec||D.rest)*1000;lite();tick()}
+function adjRest(s){D.restEnd=(D.restEnd||Date.now())+s*1000;lite();tick()}
+function stopRest(){D.restEnd=null;lite();tick()}
+setInterval(tick,250);
+['visibilitychange','pageshow','focus'].forEach(ev=>addEventListener(ev,()=>{tick();if(document.visibilityState==='visible'){wakeOn();cloudSync()}else if((D.updated||0)>(D.synced||0)){clearTimeout(pushT);push()}}));
+
+/* alerts */
+let ac=null;
+document.addEventListener('pointerdown',()=>{try{ac=ac||new (window.AudioContext||window.webkitAudioContext)();if(ac.state==='suspended')ac.resume()}catch(e){}},{once:false});
+function alarm(){try{navigator.vibrate&&navigator.vibrate([250,120,250,120,400])}catch(e){}
+ try{if(ac)[0,.25,.5].forEach(t=>{const o=ac.createOscillator(),g=ac.createGain();o.frequency.value=880;g.gain.setValueAtTime(.25,ac.currentTime+t);g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+t+.2);o.connect(g);g.connect(ac.destination);o.start(ac.currentTime+t);o.stop(ac.currentTime+t+.2)})}catch(e){}
+ try{if(document.hidden&&'Notification' in window&&Notification.permission==='granted')new Notification('Rest over',{body:'Time for your next set.'})}catch(e){}}
+function askNotify(){if('Notification' in window)Notification.requestPermission().then(p=>alert(p==='granted'?'Rest alerts are on.':'Alerts are blocked. Allow notifications in your browser settings.'));else alert('This browser does not support notifications.')}
+
+/* keep the screen awake during a workout so the phone does not suspend the app */
+let lock=null;
+async function wakeOn(){try{if(D.active&&'wakeLock' in navigator&&!lock){lock=await navigator.wakeLock.request('screen');lock.addEventListener('release',()=>{lock=null})}}catch(e){}}
+function wakeOff(){try{lock&&lock.release()}catch(e){}lock=null}
+
+/* history */
+function renderHistory(){if(!D.history.length){$('hist').innerHTML='<p class="mut" style="text-align:center;padding:24px 0">No workouts yet. Finish one and it will show up here.</p>';return}
+ $('hist').innerHTML=D.history.map((h,i)=>{const vol=h.exercises.reduce((t,e)=>t+e.sets.filter(wk).reduce((u,s)=>u+s.weight*s.reps,0),0);
+ return `<div class="card"><div class="row sb"><strong>${esc(h.name)}</strong><span class="mut">${new Date(h.start).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})}</span></div>
+ <p class="mut" style="margin:4px 0 8px">${Math.round((h.end-h.start)/60000)} min · ${Math.round(vol).toLocaleString()} ${D.unit} total volume</p>${h.note?`<p style="margin-bottom:6px">${esc(h.note)}</p>`:''}
+ ${h.exercises.map(e=>`<div style="font-size:.85rem;margin-bottom:3px"><strong>${esc(e.name)}:</strong> ${e.sets.map(s=>(s.t?TL[s.t]+' ':'')+s.weight+'×'+s.reps).join(', ')}${e.note?' — '+esc(e.note):''}</div>`).join('')}
+ <div class="row" style="margin-top:10px"><button class="btn sec sm" onclick="editHist(${i})">Edit</button><button class="btn bad sm" onclick="delHist(${i})">Delete</button></div></div>`}).join('')}
+function delHist(i){if(confirm('Delete this workout?')){D.history.splice(i,1);save();renderHistory()}}
+
+/* library */
+function renderLib(){const q=$('q').value.toLowerCase();$('lib').innerHTML=D.exercises.map((e,i)=>({e,i})).filter(({e})=>e.name.toLowerCase().includes(q)||e.category.toLowerCase().includes(q))
+ .map(({e,i})=>`<div class="card row sb" style="padding:12px"><div><strong>${esc(e.name)}</strong><div class="mut">${esc(e.category)} · ${e.defaultWeight} ${D.unit} × ${e.defaultReps}</div></div><div class="row">${FORM[e.name]?`<button class="ib" onclick="formSheet(${i})" aria-label="Form tips">ℹ️</button>`:''}<button class="ib" onclick="delLib(${i})" aria-label="Delete exercise">🗑</button></div></div>`).join('')}
+function delLib(i){if(confirm('Delete this exercise from the library?')){(D.skip=D.skip||[]).push(D.exercises[i].name);D.exercises.splice(i,1);save();renderLib()}}
+function newExSheet(fromWorkout){openSheet(`<h2>New exercise</h2><input id="en" placeholder="Name"><input id="ec" placeholder="Category, for example Chest"><input id="ew" type="number" inputmode="decimal" placeholder="Starting weight"><input id="er" type="number" inputmode="numeric" placeholder="Starting reps"><button class="btn" onclick="saveEx(${!!fromWorkout})">Save exercise</button>`)}
+function saveEx(fw){const name=$('en').value.trim();if(!name){alert('Enter a name.');return}
+ D.exercises.push({name,category:$('ec').value.trim()||'General',defaultWeight:Number($('ew').value)||0,defaultReps:Number($('er').value)||10});save();closeSheet();
+ if(fw&&D.active){D.active.exercises.push(mkEx(name));save();renderWorkout()}else renderLib()}
+
+/* data */
+async function exportData(){const data=JSON.stringify(D,null,2),name='ironlog_backup_'+new Date().toISOString().slice(0,10)+'.json';
+ try{const dl=window.claude&&await claude.use('downloads');if(dl){await dl.save({filename:name,data});return}}catch(e){if(e&&e.code==='declined')return}
+ const a=document.createElement('a');a.href='data:application/json;charset=utf-8,'+encodeURIComponent(data);a.download=name;document.body.appendChild(a);a.click();a.remove()}
+function importData(el){const f=el.files[0];if(!f)return;const rd=new FileReader();
+ rd.onload=()=>{try{const x=JSON.parse(rd.result);if(!Array.isArray(x.routines)||!Array.isArray(x.exercises)||!Array.isArray(x.history))throw 0;
+  if(!confirm('Replace everything in IronLog with this backup?')){el.value='';return}
+  D=Object.assign(clone(DEF),x,{restEnd:null});seedLib();save();$('restSel').value=D.rest;$('unitSel').value=D.unit;applyTheme();renderAll()}catch(e){alert('That file is not an IronLog backup.')}el.value=''};rd.readAsText(f)}
+async function resetAll(){if(!confirm('Erase all IronLog data, including your cloud backup? This cannot be undone.'))return;
+ D=clone(DEF);D.updated=Date.now();
+ try{if(cloud)await pushRaw()}catch(e){}
+ try{localStorage.removeItem(KEY);localStorage.removeItem('ironlog_data')}catch(e){}location.reload()}
+
+function renderAll(){const fc=$('formChk'),rc=$('restChk');if(fc)fc.checked=!D.formOff;if(rc)rc.checked=D.restAuto!==false;renderWorkout();renderHistory();renderLib();renderProg()}
+$('restSel').value=D.rest;$('unitSel').value=D.unit;seedLib();applyTheme();renderAll();tick();wakeOn();initCloud();
+</script>
+</body>
+</html>
