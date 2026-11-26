@@ -1,6 +1,6 @@
 // IronLog service worker: opens offline, and picks up updates when online.
 // Bump CACHE when you upload a new index.html to be safe.
-const CACHE = 'ironlog-v2';
+const CACHE = 'ironlog-v3';
 const FILES = ['./', 'index.html', 'manifest.webmanifest', 'icon-180.png', 'icon-192.png', 'icon-512.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));

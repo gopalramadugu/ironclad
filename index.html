@@ -114,6 +114,12 @@ label.pick input{width:auto;margin:0}
         <p class="mut" id="cloudStat" style="margin-bottom:10px">Cloud backup is off. Your data stays on this device.</p>
         <button class="btn sec" style="margin-bottom:8px" onclick="manualBackup()">Back up now</button>
         <button class="btn sec" style="margin-bottom:8px" onclick="restoreCloud()">Restore from cloud</button>
+        <div class="card" style="background:var(--bg2);margin-bottom:10px"><div class="ex-name" style="margin-bottom:6px">Google Drive sync</div>
+          <p class="mut" id="gdStat" style="margin-bottom:10px">Off. Paste your Google client ID, then tap Connect.</p>
+          <input id="gcid" placeholder="Client ID ending in .apps.googleusercontent.com" onfocus="gLib().catch(()=>{})">
+          <button class="btn" style="margin-bottom:8px" onclick="gdConnect()">Connect Google Drive</button>
+          <button class="btn sec" style="margin-bottom:8px" onclick="gdSync(true)">Sync now</button>
+          <button class="btn sec" onclick="gdOff()">Disconnect</button></div>
         <button class="btn sec" style="margin-bottom:8px" onclick="exportData()">Save backup file</button>
         <button class="btn sec" style="margin-bottom:8px" onclick="$('imp').click()">Import backup file</button>
         <input type="file" id="imp" accept=".json,application/json" style="display:none" onchange="importData(this)">
@@ -170,7 +176,7 @@ async function pushRaw(){const H=D.history,n=Math.ceil(H.length/50);
  const u=D.updated||Date.now();D.updated=u;
  await P('meta').set({updated:u,chunks:n,rest:D.rest,unit:D.unit,formOff:!!D.formOff,formHide:D.formHide||[],bw:D.bw||[],restAuto:D.restAuto!==false,routines:clone(D.routines),exercises:clone(D.exercises),active:D.active?clone(D.active):null});
  remoteChunks=n;D.synced=u;lite();setStat('Backed up at '+new Date().toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})+'.')}
-function push(){if(!cloud)return;if(busy){pushT=setTimeout(push,2000);return}busy=true;
+function push(){if(D.gdrive)gdSync(false);if(!cloud)return;if(busy){pushT=setTimeout(push,2000);return}busy=true;
  pushRaw().catch(()=>setStat('Cloud backup failed. Your data is still saved on this device.')).finally(()=>{busy=false})}
 function setCloud(on){D.cloudOn=on;save();if(on)initCloud();else{cloud=null;setStat('Cloud backup is off. Your data stays on this device.')}}
 function manualBackup(){if(!cloud){alert('Turn on "Back up to my Claude account" first, or use Save backup file.');return}D.updated=Date.now();lite();push()}
@@ -385,6 +391,35 @@ function renderProg(){const hs=D.history,names=[...new Set(hs.flatMap(h=>h.exerc
 function addBw(){const v=+$('bwv').value;if(!(v>0))return;(D.bw=D.bw||[]).push({t:Date.now(),w:v});save();renderProg()}
 function undoBw(){(D.bw||[]).pop();save();renderProg()}
 
+let gTok=null,gExp=0,gBusy=false;
+try{const g=JSON.parse(localStorage.getItem('ironlog_gt')||'null');if(g&&g.e>Date.now()){gTok=g.t;gExp=g.e}}catch(e){}
+const gs=t=>{const e=$('gdStat');if(e)e.textContent=t};
+const GF='https://www.googleapis.com/drive/v3/files',GU='https://www.googleapis.com/upload/drive/v3/files';
+function gLib(){return new Promise((ok,no)=>{if(window.google&&google.accounts)return ok();const t=document.createElement('script');t.src='https://accounts.google.com/gsi/client';t.onload=ok;t.onerror=()=>no(new Error('no connection'));document.head.appendChild(t)})}
+function gAuth(){return new Promise(async(ok,no)=>{try{await gLib();if(!D.gcid)throw new Error('add your client ID first');
+ google.accounts.oauth2.initTokenClient({client_id:D.gcid,scope:'https://www.googleapis.com/auth/drive.appdata',
+  callback:r=>{if(r.error)return no(new Error(r.error));gTok=r.access_token;gExp=Date.now()+(r.expires_in-60)*1000;try{localStorage.setItem('ironlog_gt',JSON.stringify({t:gTok,e:gExp}))}catch(e){}ok()},
+  error_callback:e=>no(new Error(e.type||'cancelled'))}).requestAccessToken()}catch(e){no(e)}})}
+async function gf(url,o={}){if(!gTok||Date.now()>gExp)throw new Error('expired');const r=await fetch(url,{...o,headers:{Authorization:'Bearer '+gTok,...(o.headers||{})}});if(r.status===401)throw new Error('expired');if(!r.ok)throw new Error('Drive '+r.status);return r}
+async function gFind(){const j=await(await gf(GF+'?spaces=appDataFolder&fields=files(id,name)&q='+encodeURIComponent("name='ironlog.json'"))).json();return j.files[0]&&j.files[0].id}
+const gSnap=()=>({updated:D.updated,rest:D.rest,unit:D.unit,formOff:!!D.formOff,formHide:D.formHide||[],bw:D.bw||[],restAuto:D.restAuto!==false,skip:D.skip||[],routines:D.routines,exercises:D.exercises,history:D.history,active:D.active||null});
+async function gPush(id){if(!D.updated)D.updated=Date.now();const body=JSON.stringify(gSnap());
+ if(id)await gf(GU+'/'+id+'?uploadType=media',{method:'PATCH',headers:{'Content-Type':'application/json'},body});
+ else{const b='ilb',m=JSON.stringify({name:'ironlog.json',parents:['appDataFolder']});await gf(GU+'?uploadType=multipart',{method:'POST',headers:{'Content-Type':'multipart/related; boundary='+b},body:'--'+b+'\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n'+m+'\r\n--'+b+'\r\nContent-Type: application/json\r\n\r\n'+body+'\r\n--'+b+'--'})}
+ D.synced=D.updated;lite()}
+async function gdSync(manual){if(!D.gcid||!D.gdrive||gBusy)return;gBusy=true;
+ try{if(!gTok||Date.now()>gExp){if(!manual){gs('Tap Sync now to reconnect to Google Drive.');gBusy=false;return}await gAuth()}
+  const id=await gFind(),t=new Date().toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
+  if(!id){await gPush();gs('Backed up to Google Drive at '+t+'.')}
+  else{const r=await(await gf(GF+'/'+id+'?alt=media')).json();
+   if((r.updated||0)>(D.updated||0)){Object.assign(D,{rest:r.rest||90,unit:r.unit||'lb',formOff:!!r.formOff,formHide:r.formHide||[],bw:r.bw||[],restAuto:r.restAuto!==false,skip:r.skip||[],routines:r.routines||[],exercises:r.exercises||[],history:r.history||[],active:r.active||null,updated:r.updated,synced:r.updated});seedLib();lite();$('restSel').value=D.rest;$('unitSel').value=D.unit;renderAll();gs('Loaded the newer copy from Google Drive.')}
+   else if((D.updated||0)>(r.updated||0)){await gPush(id);gs('Backed up to Google Drive at '+t+'.')}
+   else gs('Google Drive is up to date.')}
+ }catch(e){gs(e.message==='expired'?'Tap Sync now to reconnect to Google Drive.':'Google Drive sync failed: '+e.message+'. Your data is safe on this phone.')}
+ gBusy=false}
+function gdConnect(){const v=$('gcid').value.trim()||D.gcid;if(!v){alert('Paste your Google client ID first.');return}D.gcid=v;D.gdrive=true;lite();gs('Connecting\u2026');gdSync(true)}
+function gdOff(){D.gdrive=false;gTok=null;try{localStorage.removeItem('ironlog_gt')}catch(e){}lite();gs('Google Drive sync is off.')}
+
 /* routines */
 function renderRoutines(){const nx=nextUp();$('routines').innerHTML=(nx?`<button class="btn" style="margin-bottom:12px" onclick="startWorkout('${nx.id}')">Next up: ${esc(nx.name)}</button>`:'')+D.routines.map(r=>`<div class="card routine" onclick="startWorkout('${r.id}')"><div><h3>${esc(r.name)}</h3><span class="mut">${r.exercises.length} exercises</span></div><div class="row"><button class="ib" onclick="event.stopPropagation();routineSheet('${r.id}')" aria-label="Edit routine">✏️</button><button class="ib" onclick="event.stopPropagation();delRoutine('${r.id}')" aria-label="Delete routine">🗑</button><span>▶</span></div></div>`).join('')}
 function routineSheet(id){const r=D.routines.find(x=>x.id===id);openSheet(`<h2>${r?'Edit routine':'New routine'}</h2><input id="rn" placeholder="Routine name" value="${r?esc(r.name):''}"><input placeholder="Search by name or muscle" oninput="filt(this,'#sheet label.pick')"><div>${D.exercises.map((e,i)=>`<label class="pick"><input type="checkbox" value="${i}" ${r&&r.exercises.includes(e.name)?'checked':''}> ${esc(e.name)} <span class="mut">${esc(e.category)}</span></label>`).join('')}</div><button class="btn" style="margin-top:14px" onclick="saveRoutine('${r?r.id:''}')">Save routine</button>`)}
@@ -430,7 +465,7 @@ function startRest(sec){D.restEnd=Date.now()+(sec||D.rest)*1000;lite();tick()}
 function adjRest(s){D.restEnd=(D.restEnd||Date.now())+s*1000;lite();tick()}
 function stopRest(){D.restEnd=null;lite();tick()}
 setInterval(tick,250);
-['visibilitychange','pageshow','focus'].forEach(ev=>addEventListener(ev,()=>{tick();if(document.visibilityState==='visible'){wakeOn();cloudSync()}else if((D.updated||0)>(D.synced||0)){clearTimeout(pushT);push()}}));
+['visibilitychange','pageshow','focus'].forEach(ev=>addEventListener(ev,()=>{tick();if(document.visibilityState==='visible'){wakeOn();cloudSync();gdSync(false)}else if((D.updated||0)>(D.synced||0)){clearTimeout(pushT);push()}}));
 
 /* alerts */
 let ac=null;
@@ -480,6 +515,7 @@ async function resetAll(){if(!confirm('Erase all IronLog data, including your cl
 function renderAll(){const fc=$('formChk'),rc=$('restChk'),cc=$('cloudChk');if(cc)cc.checked=!!D.cloudOn;if(fc)fc.checked=!D.formOff;if(rc)rc.checked=D.restAuto!==false;renderWorkout();renderHistory();renderLib();renderProg()}
 $('restSel').value=D.rest;$('unitSel').value=D.unit;seedLib();applyTheme();renderAll();tick();wakeOn();initCloud();
 if(!window.claude){['manualBackup','restoreCloud'].forEach(f=>document.querySelectorAll('[onclick^="'+f+'"]').forEach(b=>b.style.display='none'));const cc=$('cloudChk');if(cc)cc.parentElement.style.display='none';setStat('Your data is stored on this phone. Use Save backup file now and then.')}
+if(D.gcid)$('gcid').value=D.gcid;if(D.gdrive){gs('Google Drive sync is on.');gLib().then(()=>gdSync(false)).catch(()=>{})}
 if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 </script>
 </body>
