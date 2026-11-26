@@ -8,6 +8,10 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#121214">
 <title>IronLog</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-title" content="IronLog">
 <style>
 :root{--bg:#f4f6fa;--bg2:#e9edf4;--card:#fff;--acc:#2563eb;--acc2:#1d4ed8;--tx:#0f172a;--mut:#64748b;--bd:#d9e0ea;--bad:#dc2626;--ok:#16a34a;--r:14px;color-scheme:light}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#121214;--bg2:#1a1a1e;--card:#222228;--acc:#3b82f6;--acc2:#2563eb;--tx:#f3f4f6;--mut:#9ca3af;--bd:#2e2e38;--bad:#ef4444;--ok:#22c55e;color-scheme:dark}}
@@ -357,7 +361,7 @@ function plates(w){const kg=D.unit==='kg',bar=kg?20:45,P=kg?[25,20,15,10,5,2.5,1
 function pastSheet(){if(D.active){alert('Finish or discard your current workout first.');return}
  openSheet(`<h2>Log a past workout</h2><input type='date' id='pd' value='${new Date().toISOString().slice(0,10)}'><select id='pr'>${D.routines.map(r=>`<option value='${r.id}'>${esc(r.name)}</option>`).join('')}</select><button class='btn' onclick='startPast()'>Continue</button>`)}
 function startPast(){const r=D.routines.find(x=>x.id===$('pr').value),d=$('pd').value;if(!r||!d)return;
- D.active={name:r.name,start:new Date(d+'T12:00:00').getTime(),past:true,exercises:r.exercises.map(mkEx)};save();closeSheet();show('workout')}
+ D.active={name:r.name,rid:r.id,start:new Date(d+'T12:00:00').getTime(),past:true,exercises:r.exercises.map(mkEx)};save();closeSheet();show('workout')}
 function editHist(i){if(D.active){alert('Finish or discard your current workout first.');return}
  const h=D.history.splice(i,1)[0];h.past=true;D.active=h;save();show('workout')}
 const e1rm=s=>s.reps>1?s.weight*(1+s.reps/30):s.weight;
@@ -382,11 +386,11 @@ function addBw(){const v=+$('bwv').value;if(!(v>0))return;(D.bw=D.bw||[]).push({
 function undoBw(){(D.bw||[]).pop();save();renderProg()}
 
 /* routines */
-function renderRoutines(){const nx=nextUp();$('routines').innerHTML=(nx?`<button class="btn" style="margin-bottom:12px" onclick="startWorkout('${nx.id}')">Next up: ${esc(nx.name)}</button>`:'')+D.routines.map(r=>`<div class="card routine" onclick="startWorkout('${r.id}')"><div><h3>${esc(r.name)}</h3><span class="mut">${r.exercises.length} exercises</span></div><div class="row"><button class="ib" onclick="event.stopPropagation();delRoutine('${r.id}')" aria-label="Delete routine">🗑</button><span>▶</span></div></div>`).join('')}
-function routineSheet(){openSheet(`<h2>New routine</h2><input id="rn" placeholder="Routine name"><input placeholder="Search by name or muscle" oninput="filt(this,'#sheet label.pick')"><div>${D.exercises.map((e,i)=>`<label class="pick"><input type="checkbox" value="${i}"> ${esc(e.name)} <span class="mut">${esc(e.category)}</span></label>`).join('')}</div><button class="btn" style="margin-top:14px" onclick="saveRoutine()">Save routine</button>`)}
-function saveRoutine(){const n=$('rn').value.trim();const ex=[...document.querySelectorAll('#sheet input[type=checkbox]:checked')].map(c=>D.exercises[+c.value].name);
+function renderRoutines(){const nx=nextUp();$('routines').innerHTML=(nx?`<button class="btn" style="margin-bottom:12px" onclick="startWorkout('${nx.id}')">Next up: ${esc(nx.name)}</button>`:'')+D.routines.map(r=>`<div class="card routine" onclick="startWorkout('${r.id}')"><div><h3>${esc(r.name)}</h3><span class="mut">${r.exercises.length} exercises</span></div><div class="row"><button class="ib" onclick="event.stopPropagation();routineSheet('${r.id}')" aria-label="Edit routine">✏️</button><button class="ib" onclick="event.stopPropagation();delRoutine('${r.id}')" aria-label="Delete routine">🗑</button><span>▶</span></div></div>`).join('')}
+function routineSheet(id){const r=D.routines.find(x=>x.id===id);openSheet(`<h2>${r?'Edit routine':'New routine'}</h2><input id="rn" placeholder="Routine name" value="${r?esc(r.name):''}"><input placeholder="Search by name or muscle" oninput="filt(this,'#sheet label.pick')"><div>${D.exercises.map((e,i)=>`<label class="pick"><input type="checkbox" value="${i}" ${r&&r.exercises.includes(e.name)?'checked':''}> ${esc(e.name)} <span class="mut">${esc(e.category)}</span></label>`).join('')}</div><button class="btn" style="margin-top:14px" onclick="saveRoutine('${r?r.id:''}')">Save routine</button>`)}
+function saveRoutine(id){const n=$('rn').value.trim();const ex=[...document.querySelectorAll('#sheet input[type=checkbox]:checked')].map(c=>D.exercises[+c.value].name);
  if(!n||!ex.length){alert('Add a name and pick at least one exercise.');return}
- D.routines.push({id:'r_'+Date.now(),name:n,exercises:ex});save();closeSheet();renderRoutines()}
+ const r=D.routines.find(x=>x.id===id);if(r){r.name=n;r.exercises=r.exercises.filter(x=>ex.includes(x)).concat(ex.filter(x=>!r.exercises.includes(x)))}else D.routines.push({id:'r_'+Date.now(),name:n,exercises:ex});save();closeSheet();renderRoutines()}
 function delRoutine(id){if(confirm('Delete this routine?')){D.routines=D.routines.filter(r=>r.id!==id);save();renderRoutines()}}
 
 /* workout */
@@ -394,7 +398,7 @@ function lastSets(name){for(const h of D.history){const e=h.exercises.find(x=>x.
 function mkEx(name){const def=D.exercises.find(e=>e.name===name)||{defaultWeight:50,defaultReps:10};const l=lastSets(name);
  return {name,sets:l?l.map(s=>({weight:s.weight,reps:s.reps,done:false})):[0,1,2].map(()=>({weight:def.defaultWeight,reps:def.defaultReps,done:false}))}}
 function startWorkout(id){const r=D.routines.find(x=>x.id===id);if(!r)return;
- D.active={name:r.name,start:Date.now(),exercises:r.exercises.map(mkEx)};save();renderWorkout();wakeOn()}
+ D.active={name:r.name,rid:r.id,start:Date.now(),exercises:r.exercises.map(mkEx)};save();renderWorkout();wakeOn()}
 function renderWorkout(){const a=D.active;$('pick').style.display=a?'none':'block';$('live').style.display=a?'block':'none';
  if(!a){renderRoutines();return}
  $('liveName').textContent=a.name;$('wnote').value=a.note||'';
@@ -410,7 +414,8 @@ function toggle(i,j){const s=D.active.exercises[i].sets[j];s.done=!s.done;save()
 function addExSheet(){openSheet(`<h2>Add exercise</h2><input placeholder="Search by name or muscle" oninput="filt(this,'#sheet label.pick')">${D.exercises.map((e,i)=>`<label class="pick" onclick="pickEx(${i})">${esc(e.name)} <span class="mut">${esc(e.category)}</span></label>`).join('')}<button class="btn sec" style="margin-top:14px" onclick="newExSheet(true)">Create new exercise</button>`)}
 function pickEx(i){D.active.exercises.push(mkEx(D.exercises[i].name));save();closeSheet();renderWorkout()}
 function finishWorkout(){if(!confirm('Finish and save this workout?'))return;
- const a=D.active;a.end=a.past?(a.end||a.start+2700000):Date.now();a.exercises.forEach(e=>e.sets=e.sets.filter(s=>s.done||false));a.exercises=a.exercises.filter(e=>e.sets.length);
+ const a=D.active;const rt=a.rid&&D.routines.find(x=>x.id===a.rid);if(rt){const nm=a.exercises.map(e=>e.name);if(nm.join('|')!==rt.exercises.join('|')&&confirm('You changed the exercises. Save the changes to '+rt.name+' for next time?'))rt.exercises=nm}
+ a.end=a.past?(a.end||a.start+2700000):Date.now();a.exercises.forEach(e=>e.sets=e.sets.filter(s=>s.done||false));a.exercises=a.exercises.filter(e=>e.sets.length);
  const prs=a.exercises.filter(e=>{const seen=D.history.flatMap(h=>h.exercises.filter(x=>x.name===e.name).flatMap(x=>x.sets.filter(wk).map(s=>s.weight)));return seen.length&&Math.max(...e.sets.filter(wk).map(s=>s.weight))>Math.max(...seen)}).map(e=>e.name);
  if(a.exercises.length){D.history.unshift(a);D.history.sort((x,y)=>y.start-x.start)}D.active=null;stopRest();save();wakeOff();renderWorkout();show('history');if(prs.length)setTimeout(()=>alert('New personal best: '+prs.join(', ')+'. Nice work!'),300)}
 function cancelWorkout(){if(confirm('Discard this workout without saving?')){D.active=null;stopRest();save();wakeOff();renderWorkout()}}
@@ -461,7 +466,8 @@ function saveEx(fw){const name=$('en').value.trim();if(!name){alert('Enter a nam
 /* data */
 async function exportData(){const data=JSON.stringify(D,null,2),name='ironlog_backup_'+new Date().toISOString().slice(0,10)+'.json';
  try{const dl=window.claude&&await claude.use('downloads');if(dl){await dl.save({filename:name,data});return}}catch(e){if(e&&e.code==='declined')return}
- const a=document.createElement('a');a.href='data:application/json;charset=utf-8,'+encodeURIComponent(data);a.download=name;document.body.appendChild(a);a.click();a.remove()}
+ try{const f=new File([data],name,{type:'application/json'});if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:'IronLog backup'});return}}catch(e){if(e&&e.name==='AbortError')return}
+ const a=document.createElement('a'),u=URL.createObjectURL(new Blob([data],{type:'application/json'}));a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000)}
 function importData(el){const f=el.files[0];if(!f)return;const rd=new FileReader();
  rd.onload=()=>{try{const x=JSON.parse(rd.result);if(!Array.isArray(x.routines)||!Array.isArray(x.exercises)||!Array.isArray(x.history))throw 0;
   if(!confirm('Replace everything in IronLog with this backup?')){el.value='';return}
@@ -473,6 +479,8 @@ async function resetAll(){if(!confirm('Erase all IronLog data, including your cl
 
 function renderAll(){const fc=$('formChk'),rc=$('restChk'),cc=$('cloudChk');if(cc)cc.checked=!!D.cloudOn;if(fc)fc.checked=!D.formOff;if(rc)rc.checked=D.restAuto!==false;renderWorkout();renderHistory();renderLib();renderProg()}
 $('restSel').value=D.rest;$('unitSel').value=D.unit;seedLib();applyTheme();renderAll();tick();wakeOn();initCloud();
+if(!window.claude){['manualBackup','restoreCloud'].forEach(f=>document.querySelectorAll('[onclick^="'+f+'"]').forEach(b=>b.style.display='none'));const cc=$('cloudChk');if(cc)cc.parentElement.style.display='none';setStat('Your data is stored on this phone. Use Save backup file now and then.')}
+if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 </script>
 </body>
 </html>
